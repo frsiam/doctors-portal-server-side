@@ -1,7 +1,8 @@
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, MongoDBNamespace } = require('mongodb');
 const express = require('express')
 const app = express()
 const cors = require('cors');
+const { query } = require('express');
 require('dotenv').config();
 const port = process.env.PORT || 4000;
 
@@ -28,6 +29,8 @@ async function run() {
             res.send(services)
         })
 
+        // This is not the proper way to query.
+        // After learning more about MongoDBNamespace. use aggregate lookup, pipeline, match, group 
         app.get('/available', async (req, res) => {
             const date = req.query.date || 'May 19, 2022';
             // step-1: get all services from serviceCollection
@@ -36,17 +39,17 @@ async function run() {
             //step 2: get the booked services from bookingCollection of that date
             const query = { date: date };
             const bookedServices = await bookingCollection.find(query).toArray();
-
-            // step 3: for each service, find booking slot for that service
+            // for each service 
             services.forEach(service => {
+                // step 4: for each service, find booking slot for that service
                 // slot paoyar jonno amra service er sathe name ta match kore shei service er slot gulu ber korbo tai 
                 const serviceBookings = bookedServices.filter(booking => booking.treatmentName === service.name);
                 // every single service er je slot gulu booked ase oigulu bookedSlot er maje paoya jabe 
-                const bookedSlot = serviceBookings.map(s => s.slot);
+                const bookedSlots = serviceBookings.map(s => s.slot);
                 // tarpor every service er je slot gulu bookedSlot er maje nai oigulu to muloto available hobe arekjon patient er jonno tai sheigulu avaiable er maje rakha ase 
-                const available = service.slots.filter(s => !bookedSlot.includes(s));
+                const available = service.slots.filter(s => !bookedSlots.includes(s));
                 // tarpor service jehetu ekta object tai tar ekta key 'availabe' er maje shei available slot gulu rakha hoise akhane 
-                service.available = available;
+                service.slots = available;
             })
             res.send(services);
         })
