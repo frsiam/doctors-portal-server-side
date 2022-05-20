@@ -28,10 +28,38 @@ async function run() {
             res.send(services)
         })
 
+        app.get('/available', async (req, res) => {
+            const date = req.query.date || 'May 19, 2022';
+            // step-1: get all services from serviceCollection
+            const services = await servicesCollection.find().toArray();
+
+            //step 2: get the booked services from bookingCollection of that date
+            const query = { date: date };
+            const bookedServices = await bookingCollection.find(query).toArray();
+
+            // step 3: for each service, find booking slot for that service
+            services.forEach(service => {
+                // slot paoyar jonno amra service er sathe name ta match kore shei service er slot gulu ber korbo tai 
+                const serviceBookings = bookedServices.filter(booking => booking.treatmentName === service.name);
+                // every single service er je slot gulu booked ase oigulu bookedSlot er maje paoya jabe 
+                const bookedSlot = serviceBookings.map(s => s.slot);
+                // tarpor every service er je slot gulu bookedSlot er maje nai oigulu to muloto available hobe arekjon patient er jonno tai sheigulu avaiable er maje rakha ase 
+                const available = service.slots.filter(s => !bookedSlot.includes(s));
+                // tarpor service jehetu ekta object tai tar ekta key 'availabe' er maje shei available slot gulu rakha hoise akhane 
+                service.available = available;
+            })
+            res.send(services);
+        })
+
         app.post('/booking', async (req, res) => {
             const booking = req.body;
+            const query = { treatmentName: booking.treatmentName, date: booking.date }
+            const exists = await bookingCollection.findOne(query);
+            if (exists) {
+                return res.send({ success: false, booking: exists })
+            }
             const result = await bookingCollection.insertOne(booking);
-            res.send(result);
+            res.send({ success: true, result });
         })
     }
     finally {
