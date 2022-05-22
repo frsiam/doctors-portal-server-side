@@ -32,7 +32,7 @@ async function run() {
         // This is not the proper way to query.
         // After learning more about MongoDBNamespace. use aggregate lookup, pipeline, match, group 
         app.get('/available', async (req, res) => {
-            const date = req.query.date || 'May 19, 2022';
+            const date = req.query.date;
             // step-1: get all services from serviceCollection
             const services = await servicesCollection.find().toArray();
 
@@ -54,9 +54,16 @@ async function run() {
             res.send(services);
         })
 
+        app.get('/booking', async (req, res) => {
+            const patient = req.query.patient;
+            const query = { patient: patient };
+            const bookings = await bookingCollection.find(query).toArray();
+            res.send(bookings)
+        })
+
         app.post('/booking', async (req, res) => {
             const booking = req.body;
-            const query = { treatmentName: booking.treatmentName, date: booking.date }
+            const query = { treatmentName: booking.treatmentName, date: booking.date, patient: booking.patient }
             const exists = await bookingCollection.findOne(query);
             if (exists) {
                 return res.send({ success: false, booking: exists })
