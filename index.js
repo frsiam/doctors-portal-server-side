@@ -44,21 +44,33 @@ async function run() {
             res.send(services)
         })
 
-        app.get('/user', async (req, res) => {
+        app.get('/user', verifyJWT, async (req, res) => {
             const users = await userCollection.find().toArray();
             res.send(users);
-        })
+        });
+
+        app.put('/user/admin/:email', verifyJWT, async (req, res) => {
+            const email = req.params.email;
+            const filter = { email: email };
+            const updatedDoc = {
+                $set: { role: 'admin' }
+            };
+            const result = await userCollection.updateOne(filter, updatedDoc);
+            res.send(result);
+        });
 
         app.put('/user/:email', async (req, res) => {
             const user = req.body;
             const email = req.params.email;
             const filter = { email: email };
             const options = { upsert: true };
-            const updatedDoc = { $set: user };
+            const updatedDoc = {
+                $set: user
+            };
             const result = await userCollection.updateOne(filter, updatedDoc, options);
             const token = jwt.sign({ email: email }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' })
             res.send({ result, token });
-        })
+        });
 
         // This is not the proper way to query.
         // After learning more about MongoDBNamespace. use aggregate lookup, pipeline, match, group 
